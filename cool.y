@@ -107,9 +107,22 @@ class_list
 	;
 
 /* If no parent is specified, the class inherits from the Object class. */
-class	: CLASS TYPEID '{' feature_list '}' ';'
+class	: 
+	  CLASS error '{' '}' ';'
+	| CLASS error '{' feature_list '}' ';'
+	| CLASS TYPEID '{' '}' ';'
+  {
+    $$ = class_($2, idtable.add_string("Object"), nil_Features(), 
+      stringtable.add_string(curr_filename));
+  }
+	| CLASS TYPEID '{' feature_list '}' ';'
 		{ $$ = class_($2,idtable.add_string("Object"),$4,
 			      stringtable.add_string(curr_filename)); }
+	| CLASS TYPEID INHERITS TYPEID '{' '}' ';'
+  { 
+    $$ = class_($2, $4, nil_Features(), 
+      stringtable.add_string(curr_filename));
+  }
 	| CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
 		{ $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
 	| error { yyclearin; $$=NULL; }
@@ -118,11 +131,16 @@ class	: CLASS TYPEID '{' feature_list '}' ';'
 /* Feature list may be empty, but no empty features in list. */
 feature_list
 :		/* empty */ {  $$ = nil_Features(); }
+|  feature
+  {
+    $$ = single_Features($1);
+  }
 | feature_list feature						{ $$ = append_Features($1, single_Features($2)); }
 ;
 
-feature	
-: OBJECTID '(' ')' ':' TYPEID '{' expr '}' ';'			{ $$ = method($1, nil_Formals(), $5, $7);}
+feature
+: error ';' 
+| OBJECTID '(' ')' ':' TYPEID '{' expr '}' ';'			{ $$ = method($1, nil_Formals(), $5, $7);}
 | OBJECTID '(' formal formal_list ')' ':' TYPEID '{' expr '}' ';'	{ $$ = method($1, append_Formals(single_Formals($3),$4), $7, $9);}
 | OBJECTID ':' TYPEID ';'						{ $$ = attr($1, $3, no_expr()); }
 | OBJECTID ':' TYPEID ASSIGN expr ';'				{ $$ = attr($1, $3, $5); }
@@ -137,6 +155,10 @@ feature
 
 formal_list
 : /* empty */							{ $$ = nil_Formals(); }
+| formal
+  {
+    $$ = single_Formals($1);
+  }
 | formal_list ',' formal						{ $$ = append_Formals($1, single_Formals($3)); }
 
 | formal_list ',' error						{ yyclearin; $$=NULL; }
@@ -226,4 +248,3 @@ void yyerror(char *s)
 
   if(omerrs>50) {fprintf(stdout, "More than 50 errors\n"); exit(1);}
 }
-
