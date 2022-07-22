@@ -1,8 +1,3 @@
-/*
- *  cool.y
- *              Parser definition for the COOL language.
- *
- */
 %{
 #include <iostream>
 #include "cool-tree.h"
